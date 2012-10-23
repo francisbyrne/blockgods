@@ -299,12 +299,12 @@
 	var topbar = global.document.querySelector('#topbar');
 	var container = global.document.querySelector('#container');
 	var loader = global.document.querySelector('#loader');
-	var selectcamera = global.document.querySelector('#selectcamera');
+	//var selectcamera = global.document.querySelector('#selectcamera');
 	//var skycheckbox = global.document.querySelector('#skycheckbox');
 	
-	selectcamera.addEventListener('change', function () {
-		changeView(selectcamera.options[selectcamera.selectedIndex].value);
-	}, false);
+	// selectcamera.addEventListener('change', function () {
+	// 	changeView(selectcamera.options[selectcamera.selectedIndex].value);
+	// }, false);
 	
 	// var stats = new Stats();
 	// stats.domElement.style.position = 'absolute';
@@ -619,7 +619,7 @@
 			//loader.style.display = 'none';
 			startTime = Date.now();
 			changeView('stevefront');
-			selectcamera.disabled = false;
+			//selectcamera.disabled = false;
 			render();
 		}, 0);
 	
