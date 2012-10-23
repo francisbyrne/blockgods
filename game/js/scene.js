@@ -200,9 +200,6 @@
 		headgroup.rotation.y = Math.sin(time*1.5)/3;
 		headgroup.rotation.z = Math.sin(time)/2;
 		
-		// creeper.head.rotation.y = Math.sin(time*3)/5-0.2;
-		// creeper.head.rotation.z = Math.sin(time/2)/4;
-		
 		rightarm.rotation.z = 2 * Math.cos(0.6662 * time*10 + Math.PI);
 		rightarm.rotation.x = 1 * (Math.cos(0.2812 * time*10) - 1);
 		leftarm.rotation.z = 2 * Math.cos(0.6662 * time*10);
@@ -210,9 +207,6 @@
 		
 		rightleg.rotation.z = 1.4 * Math.cos(0.6662 * time*10);
 		leftleg.rotation.z = 1.4 * Math.cos(0.6662 * time*10 + Math.PI);
-		
-		// creeper.legs.leftback.rotation.z = creeper.legs.rightfront.rotation.z = 0.3*Math.cos(time*10);
-		// creeper.legs.leftfront.rotation.z = creeper.legs.rightback.rotation.z = 0.3*Math.cos(time*10 + Math.PI);
 		
 		playerGroup.position.y = 1.7 * Math.cos(0.6662 * time*10 * 2); // Jumping
 		playerGroup.position.z = 1 * Math.cos(0.6662 * time*10); // Dodging when running
@@ -223,10 +217,6 @@
 		playerGroup.rotation.y = -(pos);
 		playerGroup.position.x = 90*Math.cos(pos-Math.PI/2);
 		playerGroup.position.z = 90*Math.sin(pos-Math.PI/2);
-		
-		// creeper.model.rotation.y = -(pos-Math.PI/4);
-		// creeper.model.position.x = 70*Math.cos((pos-Math.PI/4)-Math.PI/2);
-		// creeper.model.position.z = 70*Math.sin((pos-Math.PI/4)-Math.PI/2);
 		
 		renderer.render(scene, camera);
 		//stats.update();
@@ -292,9 +282,6 @@
 	
 	var tileUvWidth = 1;
 	var tileUvHeight = 1;
-	
-	// var creeper = new Creeper();
-	// creeper.model.scale.setLength(2);
 	
 	var topbar = global.document.querySelector('#topbar');
 	var container = global.document.querySelector('#container');
@@ -613,7 +600,6 @@
 	};
 
 	scene.add(playerGroup);
-		//scene.add(creeper.model);
 		
 		setTimeout(function () {
 			//loader.style.display = 'none';
