@@ -5,9 +5,11 @@
 
 var WIDTH = window.innerWidth,		// viewport width
 	  HEIGHT = window.innerHeight,	// viewport height
-	  MOVESPEED = 100,							// speed of moving camera
-		LOOKSPEED = 0.075,						// speed of rotating camera
-		CAM_DISTANCE = 1000,					// camera distance from avatar
+	  MOVESPEED = 500,							// speed of avatar/camera movement
+		LOOKSPEED = 0.075,						// speed of rotating avatar/camera
+		CAM_VIEW_ANGLE = 75,					// camera view angle
+		CAM_ASPECT = WIDTH / HEIGHT,	// camera aspect ratio
+		CAM_DISTANCE = 1500,					// camera distance from avatar
 		CAM_NEAR = 1,									// camera field of view minimum clipping
 		CAM_FAR = 10000,							// camera field of view maximum clipping
 		// key bindings
@@ -84,34 +86,7 @@ var clearActions = function () {
 
 var initScene = function () {
 
-	// set some camera attributes
-	var VIEW_ANGLE = 45,
-	  ASPECT = WIDTH / HEIGHT;
-
-	// create a camera and a scene
-	camera = new THREE.PerspectiveCamera(
-	    VIEW_ANGLE,
-	    ASPECT,
-	    CAM_NEAR,
-	    CAM_FAR);
-
 	var scene = new THREE.Scene();
-
-	// add the camera to the scene
-	scene.add(camera);
-
-	// the camera starts at 0,0,0
-	// so pull it back
-	camera.position.z = CAM_DISTANCE;
-
-	// initialise camera controls
-	controls = new THREE.FlyControls( camera );
-
-	controls.movementSpeed = 1000;
-	controls.domElement = document.getElementById('container');
-	controls.rollSpeed = Math.PI / 24;
-	controls.autoForward = false;
-	controls.dragToLook = false;
 
 	clock = new THREE.Clock(); // Used in render() for controls.update()
 
@@ -123,91 +98,108 @@ var initScene = function () {
 	// Scene size
 	var M = 1000 * 10;
 
+	// TODO: get skybox facing inwards and make lighter colour
 	// Skybox
-  var skyGeometry = new THREE.CubeGeometry(M, M, M, 4, 4, 4, null, true);
-  var skyMaterial = new THREE.MeshBasicMaterial({color: 0x3030ff});
-  var skyboxMesh  = new THREE.Mesh(skyGeometry, skyMaterial);
-  skyboxMesh.flipSided = true;
-  scene.add(skyboxMesh);
+  // var skyGeometry = new THREE.CubeGeometry(M, M, M, 4, 4, 4, null, true);
+  // var skyMaterial = new THREE.MeshBasicMaterial({color: 0x3030ff});
+  // var skyboxMesh  = new THREE.Mesh(skyGeometry, skyMaterial);
+  // skyboxMesh.flipSided = true; // TODO: this doesn't exist anymore, investigate!
+  // scene.add(skyboxMesh);
 
 	// Sea
-  // var seaGeometry = new THREE.PlaneGeometry(M, M, 3, 3)
-  //   , seaMaterial = new THREE.MeshBasicMaterial({color: 0x483D8B})
-  //   , seaMesh = new THREE.Mesh(seaGeometry, seaMaterial);
-  // seaMesh.position.y = -1;
-  // scene.add(seaMesh);
+  var seaGeometry = new THREE.PlaneGeometry(M, M, 3, 3)
+    , seaMaterial = new THREE.MeshBasicMaterial({color: 0x483D8B})
+    , seaMesh = new THREE.Mesh(seaGeometry, seaMaterial);
+  seaMesh.position.y = -1;
+  seaMesh.rotation.x = Math.PI * 3 / 2;
+  scene.add(seaMesh);
 
   // Grass
-  // var grassGeometry = new THREE.PlaneGeometry(M*0.9, M*0.9, 3, 3)
-  //   , grassMaterial = new THREE.MeshBasicMaterial({color: 0x7CFC00})
-  //   , grassMesh = new THREE.Mesh(grassGeometry, grassMaterial);
-  // scene.add(grassMesh);
+  var grassGeometry = new THREE.PlaneGeometry(M*0.9, M*0.9, 3, 3)
+    , grassMaterial = new THREE.MeshBasicMaterial({color: 0x7CFC00})
+    , grassMesh = new THREE.Mesh(grassGeometry, grassMaterial);
+  grassMesh.rotation.x = Math.PI * 3 / 2;
+  scene.add(grassMesh);
 
 			
 	/**************** CREATE AVATAR ****************/
 
-	// helper function for creating model arms/legs
-	function limb(material) {
-	  var limb = new THREE.Object3D();
-
-	  var arm_geometry = new THREE.CylinderGeometry(25, 25, 500);
-	  var arm = new THREE.Mesh(arm_geometry, material);
-	  limb.add(arm);
-
-	  var hand_geometry = new THREE.SphereGeometry(75);
-	  var hand = new THREE.Mesh(hand_geometry, material);
-	  hand.position.y = 250;
-	  limb.add(hand);
-
-	  return limb;
-	}
-
 	// create the model for the avatar
-  function buildAvatar() {
-	  var avatar = new THREE.Object3D();
+  function createAvatar() {
 
+  	// body size constants
+  	var SIZE = 100,
+  			HEAD_SIZE = SIZE * 1.5,
+				BODY_HEIGHT = SIZE * 2,
+				BODY_GIRTH = SIZE,
+				LIMB_LENGTH = SIZE * 2,
+				LIMB_GIRTH	= SIZE * 0.4;
+
+	  var avatar = new THREE.Object3D();
 	  var material = new THREE.MeshNormalMaterial();
 
-	  var body_geometry = new THREE.CylinderGeometry(1, 300, 300);
+	  // body
+	  var body_geometry = new THREE.CubeGeometry(BODY_GIRTH, BODY_HEIGHT, BODY_GIRTH);
 	  var body = new THREE.Mesh(body_geometry, material);
-	  body.position.z = -150;
 	  avatar.add(body);
 
-	  var head_geometry = new THREE.SphereGeometry(200);
+	  // head
+	  var head_geometry = new THREE.CubeGeometry(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE);
 	  var head = new THREE.Mesh(head_geometry, material);
-	  head.position.y = 200;
+	  head.position.y = BODY_HEIGHT;
 	  avatar.add(head);
 
-	  var right_arm = new limb(material);
-	  right_arm.position.x = 150;
-	  right_arm.position.z = -50;
-	  right_arm.rotation.z = -Math.PI/3;
-	  avatar.add(right_arm);
+	  // helper function for creating model arms/legs
+	  // TODO: Get frame of reference working properly
+		function limb(material, name, xpos, ypos, zrot) {
 
-	  var right_leg = new limb(material);
-	  right_leg.position.x = 150;
-	  right_leg.position.y = -350;
-	  right_leg.position.z = -50;
-	  right_leg.rotation.z = -Math.PI * 9 / 10;
-	  avatar.add(right_leg);
+		  var limb_geometry = new THREE.CubeGeometry(LIMB_LENGTH, LIMB_GIRTH, LIMB_GIRTH);
+		  var limb = new THREE.Mesh(limb_geometry, material);
+		  var socket = new THREE.Object3D();
 
-	  var left_arm = new limb(material);
-	  left_arm.position.x = -150;
-	  left_arm.position.z = -50;
-	  left_arm.rotation.z = -Math.PI/3 * 5;
-	  avatar.add(left_arm);
+		  name ? socket.name = name : '';
+		  xpos ? socket.position.x = xpos : '';
+		  ypos ? socket.position.y = ypos : '';
+		  zrot ? socket.rotation.z = zrot : '';
+		  socket.add(limb);
 
-	  var left_leg = new limb(material);
-	  left_leg.position.x = -150;
-	  left_leg.position.y = -350;
-	  left_leg.position.z = -50;
-	  left_leg.rotation.z = -Math.PI * 10 / 9;
-	  avatar.add(left_leg);
+		  return socket;
+		};
+
+		// create various limbs
+	  avatar.add( new limb(material, 'right_arm', BODY_GIRTH, null, -Math.PI/3) );
+	  avatar.add( new limb(material, 'left_arm', -BODY_GIRTH, null, Math.PI/3) );
+	  avatar.add( new limb(material, 'right_leg', BODY_GIRTH * 0.4, -BODY_HEIGHT * 0.5, -Math.PI/3) );
+	  avatar.add( new limb(material, 'left_leg', -BODY_GIRTH * 0.4, -BODY_HEIGHT * 0.5, Math.PI/3) );
+
+	  // position the avatar relative to its height so that it walks on land
+	  avatar.position.y = BODY_HEIGHT / 2 + LIMB_LENGTH / 2;
+
+		// initialise avatar controls
+		controls = new THREE.FirstPersonControls( avatar );
+
+		controls.movementSpeed = 1000;
+		controls.activeLook = false;	// stop the FirstPersonControls from following mouse movements
+
+		// create a camera and a scene
+		camera = new THREE.PerspectiveCamera(
+		    CAM_VIEW_ANGLE,
+		    CAM_ASPECT,
+		    CAM_NEAR,
+		    CAM_FAR);
+
+		// the camera starts at 0,0,0 so pull it back
+		camera.position.z = CAM_DISTANCE;
+		camera.position.y = CAM_DISTANCE / 2;
+
+		// add camera to avatar (so that it follows the avatar)
+		avatar.add(camera);
 
 	  return avatar;
 	};
 
-	avatar = buildAvatar();
+	avatar = createAvatar();
+
   scene.add(avatar);
 
 
@@ -256,6 +248,22 @@ var render = function () {
 	
 	var delta = clock.getDelta();
 	controls.update(delta); // Move camera
+
+	// move avatar
+	var elapsed = clock.getElapsedTime(),
+    	t = elapsed * 1000,
+    	amplitude = (MOVESPEED/2 - Math.abs((t % (2*MOVESPEED)) - MOVESPEED))/MOVESPEED;
+
+  if (controls.moveForward || controls.moveBackward ||
+      controls.moveRight || controls.moveLeft) {
+    avatar.getChildByName('left_leg', true).rotation.x  =    amplitude*(Math.PI/8);
+  	avatar.getChildByName('right_leg', true).rotation.x = -1*amplitude*(Math.PI/8);
+  	avatar.getChildByName('left_arm', true).rotation.x  =    amplitude*(Math.PI/8);
+  	avatar.getChildByName('right_arm', true).rotation.x = -1*amplitude*(Math.PI/8);
+  }
+
+  // if (controls.moveLeft) avatar.rotation.y = -Math.PI/2;
+  //   if (controls.moveRight) avatar.rotation.y = Math.PI/2;
 
 	// draw the scene
   renderer.render(scene, camera);
