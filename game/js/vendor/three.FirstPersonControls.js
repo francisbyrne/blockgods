@@ -2,6 +2,7 @@
  * @author mrdoob / http://mrdoob.com/
  * @author alteredq / http://alteredqualia.com/
  * @author paulirish / http://paulirish.com/
+ * @modified byrnify
  */
 
 THREE.FirstPersonControls = function ( object, domElement ) {
@@ -19,6 +20,7 @@ THREE.FirstPersonControls = function ( object, domElement ) {
 	// this.invertVertical = false;
 
 	this.activeLook = true;
+	this.keyRotate = false;	// flag for left/right key rotations
 
 	this.heightSpeed = false;
 	this.heightCoef = 1.0;
@@ -124,13 +126,13 @@ THREE.FirstPersonControls = function ( object, domElement ) {
 
 		if ( this.domElement === document ) {
 
-			this.mouseX = event.pageX - this.viewHalfX;
-			this.mouseY = event.pageY - this.viewHalfY;
+			//this.mouseX = event.pageX - this.viewHalfX;
+			//this.mouseY = event.pageY - this.viewHalfY;
 
 		} else {
 
-			this.mouseX = event.pageX - this.domElement.offsetLeft - this.viewHalfX;
-			this.mouseY = event.pageY - this.domElement.offsetTop - this.viewHalfY;
+			//this.mouseX = event.pageX - this.domElement.offsetLeft - this.viewHalfX;
+			//this.mouseY = event.pageY - this.domElement.offsetTop - this.viewHalfY;
 
 		}
 
@@ -145,13 +147,19 @@ THREE.FirstPersonControls = function ( object, domElement ) {
 			case 38: /*up*/
 			case 87: /*W*/ this.moveForward = true; break;
 
-			case 37: /*left*/
+			case 37: /*left*/ 
+			if (this.keyRotate) {
+				this.mouseX = -5000; break;
+			}
 			case 65: /*A*/ this.moveLeft = true; break;
 
 			case 40: /*down*/
 			case 83: /*S*/ this.moveBackward = true; break;
 
 			case 39: /*right*/
+			if (this.keyRotate) {
+				this.mouseX = 5000; break;
+			}
 			case 68: /*D*/ this.moveRight = true; break;
 
 			case 82: /*R*/ this.moveUp = true; break;
@@ -170,13 +178,19 @@ THREE.FirstPersonControls = function ( object, domElement ) {
 			case 38: /*up*/
 			case 87: /*W*/ this.moveForward = false; break;
 
-			case 37: /*left*/
+			case 37: /*left*/ 
+			if (this.keyRotate) {
+				this.mouseX = 0; break;
+			}
 			case 65: /*A*/ this.moveLeft = false; break;
 
 			case 40: /*down*/
 			case 83: /*S*/ this.moveBackward = false; break;
 
 			case 39: /*right*/
+			if (this.keyRotate) {
+				this.mouseX = 0; break;
+			}
 			case 68: /*D*/ this.moveRight = false; break;
 
 			case 82: /*R*/ this.moveUp = false; break;

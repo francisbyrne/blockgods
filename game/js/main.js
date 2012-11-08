@@ -25,6 +25,7 @@ var scene,											// threejs scene object
 		actions,										// queue of user actions (inputs)
 		controls,										// camera/avatar controls
 		clock = new THREE.Clock(),	// clock object for controls
+	  material = new THREE.MeshNormalMaterial(),
 		playing = true, 						// boolean - game is in progress
 		avatar;											// game avatar
 
@@ -136,7 +137,6 @@ var initScene = function () {
 				LIMB_GIRTH	= SIZE * 0.4;
 
 	  var avatar = new THREE.Object3D();
-	  var material = new THREE.MeshNormalMaterial();
 
 	  // body
 	  var body_geometry = new THREE.CubeGeometry(BODY_GIRTH, BODY_HEIGHT, BODY_GIRTH);
@@ -175,34 +175,45 @@ var initScene = function () {
 	  // position the avatar relative to its height so that it walks on land
 	  avatar.position.y = BODY_HEIGHT / 2 + LIMB_LENGTH / 2;
 
-		// initialise avatar controls
-		controls = new THREE.FirstPersonControls( avatar );
-
-		controls.movementSpeed = 1000;
-		controls.activeLook = false;	// stop the FirstPersonControls from following mouse movements
-
-		// create a camera and a scene
-		camera = new THREE.PerspectiveCamera(
-		    CAM_VIEW_ANGLE,
-		    CAM_ASPECT,
-		    CAM_NEAR,
-		    CAM_FAR);
-
-		// the camera starts at 0,0,0 so pull it back
-		camera.position.z = CAM_DISTANCE;
-		camera.position.y = CAM_DISTANCE / 2;
-
-		// add camera to avatar (so that it follows the avatar)
-		avatar.add(camera);
-
 	  return avatar;
 	};
 
 	avatar = createAvatar();
 
-  scene.add(avatar);
+	// set up a frame of reference for avatar for model rotation
+  var avatar_frame = new THREE.Object3D();
+  avatar_frame.add(avatar);
+  scene.add(avatar_frame);
 
+	// initialise avatar controls
+	controls = new THREE.FirstPersonControls( avatar_frame );
 
+	controls.movementSpeed = 1000;
+	//controls.activeLook = false;	// stop the FirstPersonControls from following mouse movements
+	controls.keyRotate = true;
+
+	// create a camera and a scene
+	camera = new THREE.PerspectiveCamera(
+	    CAM_VIEW_ANGLE,
+	    CAM_ASPECT,
+	    CAM_NEAR,
+	    CAM_FAR);
+
+	// the camera starts at 0,0,0 so pull it back
+	camera.position.z = CAM_DISTANCE;
+	camera.position.y = CAM_DISTANCE / 2;
+
+	// add camera to avatar (so that it follows the avatar)
+	avatar.add(camera);
+
+			
+	/**************** CREATE SPHERE ****************/
+	var sphere_geometry = new THREE.SphereGeometry(300);
+	var sphere = new THREE.Mesh(sphere_geometry, material);
+	sphere.position.z = 500;
+	sphere.position.y = 300;
+	scene.add(sphere);
+	
 	/**************** LIGHTING ****************/
 
 	// create a point light
@@ -261,9 +272,6 @@ var render = function () {
   	avatar.getChildByName('left_arm', true).rotation.x  =    amplitude*(Math.PI/8);
   	avatar.getChildByName('right_arm', true).rotation.x = -1*amplitude*(Math.PI/8);
   }
-
-  // if (controls.moveLeft) avatar.rotation.y = -Math.PI/2;
-  //   if (controls.moveRight) avatar.rotation.y = Math.PI/2;
 
 	// draw the scene
   renderer.render(scene, camera);
