@@ -12,6 +12,8 @@ var WIDTH = window.innerWidth,		// viewport width
 		CAM_DISTANCE = 1500,					// camera distance from avatar
 		CAM_NEAR = 1,									// camera field of view minimum clipping
 		CAM_FAR = 10000,							// camera field of view maximum clipping
+		ISLAND_WIDTH = 9000,
+		ISLAND_HALF = ISLAND_WIDTH / 2,
 		// key bindings
 		KEY     = { ESC: 27, SPACE: 32, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40 },
     DIR     = { UP: 0, RIGHT: 1, DOWN: 2, LEFT: 3, MIN: 0, MAX: 3 };
@@ -27,7 +29,8 @@ var scene,											// threejs scene object
 		clock = new THREE.Clock(),	// clock object for controls
 	  material = new THREE.MeshNormalMaterial(),
 		playing = true, 						// boolean - game is in progress
-		avatar;											// game avatar
+		avatar,											// game avatar
+		walls;
 
 		
 /**************** HELPER FUNCTIONS ****************/
@@ -43,6 +46,15 @@ window.requestAnimFrame = (function(){
             window.setTimeout(callback, 1000 / 60);
           };
     })();
+
+function spinAvatar(angle) {
+  new TWEEN.Tween( { y: avatar.rotation.y } )
+      .to( { y: angle }, 100 )
+      .onUpdate( function () {
+          avatar.rotation.y = this.y;
+      } )
+      .start();
+}
 
 
 /**************** CONTROLS ****************/
@@ -122,6 +134,11 @@ var initScene = function () {
   grassMesh.rotation.x = Math.PI * 3 / 2;
   scene.add(grassMesh);
 
+  var fenceGeometry = new THREE.CubeGeometry(ISLAND_WIDTH, 1000, ISLAND_WIDTH, 3, 1, 3)
+    , fenceMaterial = new THREE.MeshBasicMaterial({wireframe: true});
+  fence = new THREE.Mesh(fenceGeometry, fenceMaterial);
+  scene.add(fence);
+
 			
 	/**************** CREATE AVATAR ****************/
 
@@ -188,7 +205,7 @@ var initScene = function () {
 	// initialise avatar controls
 	controls = new THREE.FirstPersonControls( avatar_frame );
 
-	controls.movementSpeed = 1000;
+	controls.movementSpeed = 5000;
 	//controls.activeLook = false;	// stop the FirstPersonControls from following mouse movements
 	controls.keyRotate = true;
 
@@ -217,8 +234,7 @@ var initScene = function () {
 	/**************** LIGHTING ****************/
 
 	// create a point light
-	var pointLight =
-	  new THREE.PointLight(0xFFFFFF);
+	var pointLight = new THREE.PointLight(0xFFFFFF);
 
 	// set its position
 	pointLight.position.x = 10;
@@ -230,6 +246,30 @@ var initScene = function () {
 
 	return scene;
 };
+
+		
+/**************** COLLISION DETECTION ****************/
+
+// TODO: Needs to take avatar rotation into account
+function detectCollision() {
+	var x, z;
+  if (controls.moveLeft) z = -1;
+  if (controls.moveRight) z = 1;
+  if (controls.moveBackward) x = -1;
+  if (controls.moveForward) x = 1;
+
+  var vector = new THREE.Vector3( x, 0, z );
+  var ray = new THREE.Ray(controls.object.position, vector);
+  var intersects = ray.intersectObjects(scene.children);
+
+  if (intersects.length > 0) {
+  	console.log(controls);
+      if (z == -1) controls.moveLeft = false;
+      if (z == 1) controls.moveRight = false;
+      if (x == -1) controls.moveBackward = false;
+      if (x == 1) controls.moveForward = false;
+  }
+}
 
 		
 /**************** RENDER ****************/
@@ -257,10 +297,9 @@ var render = function () {
 	// handle the next queued action
   handle(actions.shift());
 	
-	var delta = clock.getDelta();
-	controls.update(delta); // Move camera
+	controls.update(clock.getDelta()); // Move camera
 
-	// move avatar
+	// animate avatar's limbs
 	var elapsed = clock.getElapsedTime(),
     	t = elapsed * 1000,
     	amplitude = (MOVESPEED/2 - Math.abs((t % (2*MOVESPEED)) - MOVESPEED))/MOVESPEED;
@@ -273,8 +312,9 @@ var render = function () {
   	avatar.getChildByName('right_arm', true).rotation.x = -1*amplitude*(Math.PI/8);
   }
 
-	// draw the scene
-  renderer.render(scene, camera);
+  detectCollision();
+
+  renderer.render(scene, camera); // draw the scene
 };
 
 scene = initScene();

@@ -5,6 +5,8 @@
  * @modified byrnify
  */
 
+// TODO: Need to clean up hacks for key rotation!
+
 THREE.FirstPersonControls = function ( object, domElement ) {
 
 	this.object = object;
@@ -149,7 +151,7 @@ THREE.FirstPersonControls = function ( object, domElement ) {
 
 			case 37: /*left*/ 
 			if (this.keyRotate) {
-				this.mouseX = -5000; break;
+				this.mouseX = -this.movementSpeed; break;
 			}
 			case 65: /*A*/ this.moveLeft = true; break;
 
@@ -158,7 +160,7 @@ THREE.FirstPersonControls = function ( object, domElement ) {
 
 			case 39: /*right*/
 			if (this.keyRotate) {
-				this.mouseX = 5000; break;
+				this.mouseX = this.movementSpeed; break;
 			}
 			case 68: /*D*/ this.moveRight = true; break;
 
