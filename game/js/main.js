@@ -9,7 +9,7 @@ var WIDTH = window.innerWidth,		// viewport width
 		LOOKSPEED = 0.075,						// speed of rotating avatar/camera
 		CAM_VIEW_ANGLE = 75,					// camera view angle
 		CAM_ASPECT = WIDTH / HEIGHT,	// camera aspect ratio
-		CAM_DISTANCE = 1500,					// camera distance from avatar
+		CAM_DISTANCE = 3000,					// camera distance from avatar
 		CAM_NEAR = 1,									// camera field of view minimum clipping
 		CAM_FAR = 10000,							// camera field of view maximum clipping
 		ISLAND_WIDTH = 9000,
@@ -30,6 +30,7 @@ var scene,											// threejs scene object
 	  material = new THREE.MeshNormalMaterial(),
 		playing = true, 						// boolean - game is in progress
 		avatar,											// game avatar
+		avatar_frame,								// avatar's frame of reference
 		walls;
 
 		
@@ -59,32 +60,32 @@ function spinAvatar(angle) {
 
 /**************** CONTROLS ****************/
 
-// var keydown = function (ev) {
-//   var handled = false;
-//   if (playing) {
-//     switch(ev.keyCode) {
-//       case KEY.LEFT:   actions.push(DIR.LEFT);  handled = true; break;
-//       case KEY.RIGHT:  actions.push(DIR.RIGHT); handled = true; break;
-//       case KEY.UP:     actions.push(DIR.UP);    handled = true; break;
-//       case KEY.DOWN:   actions.push(DIR.DOWN);  handled = true; break;
-//      //case KEY.ESC:    actions.push(DIR.CENTRE);handled = true; break;
-//     }
-//   }
-//   if (handled)
-//     ev.preventDefault(); // prevent arrow keys from scrolling the page (supported in IE9+ and all other browsers)
-// };
+var keydown = function (ev) {
+  var handled = false;
+  if (playing) {
+    switch(ev.keyCode) {
+      case KEY.LEFT:   actions.push(DIR.LEFT);  handled = true; break;
+      case KEY.RIGHT:  actions.push(DIR.RIGHT); handled = true; break;
+      case KEY.UP:     actions.push(DIR.UP);    handled = true; break;
+      case KEY.DOWN:   actions.push(DIR.DOWN);  handled = true; break;
+     //case KEY.ESC:    actions.push(DIR.CENTRE);handled = true; break;
+    }
+  }
+  if (handled)
+    ev.preventDefault(); // prevent arrow keys from scrolling the page (supported in IE9+ and all other browsers)
+};
 
-// var addEvents = function () {
-//   document.addEventListener('keydown', keydown, false);
-//   //window.addEventListener('resize', resize, false);
-// };
+var addEvents = function () {
+  document.addEventListener('keydown', keydown, false);
+  //window.addEventListener('resize', resize, false);
+};
 
 var handle = function (action) {
   switch(action) {
-    case DIR.LEFT:   avatar.rotation.y += 0.1; break;
-    case DIR.RIGHT:  avatar.rotation.y -= 0.1; break;
-    case DIR.UP:     avatar.position.z -= 1; break;
-    case DIR.DOWN:   avatar.position.z += 1; break;
+    case DIR.LEFT:   break;
+    case DIR.RIGHT:  break;
+    case DIR.UP:     avatar_frame.setLinearVelocity({z: -100, y: 0, x: 0 }); break;
+    case DIR.DOWN:   break;
     //case DIR.CENTRE: camera.lookAt(0,0,0); break;
   }
   //camera.lookAt(avatar.position);
@@ -97,9 +98,14 @@ var clearActions = function () {
 
 /**************** INITIALISE SCENE ****************/
 
+// initialise Physi.js
+Physijs.scripts.worker = 'js/vendor/physijs_worker.js';
+Physijs.scripts.ammo = 'ammo.js';
+
 var initScene = function () {
 
-	var scene = new THREE.Scene();
+  scene = new Physijs.Scene;
+  scene.setGravity(new THREE.Vector3( 0, -30, 0 ));	// gravity
 
 	clock = new THREE.Clock(); // Used in render() for controls.update()
 
@@ -130,7 +136,7 @@ var initScene = function () {
   // Grass
   var grassGeometry = new THREE.PlaneGeometry(M*0.9, M*0.9, 3, 3)
     , grassMaterial = new THREE.MeshBasicMaterial({color: 0x7CFC00})
-    , grassMesh = new THREE.Mesh(grassGeometry, grassMaterial);
+    , grassMesh = new Physijs.PlaneMesh(grassGeometry, grassMaterial);
   grassMesh.rotation.x = Math.PI * 3 / 2;
   scene.add(grassMesh);
 
@@ -138,6 +144,14 @@ var initScene = function () {
     , fenceMaterial = new THREE.MeshBasicMaterial({wireframe: true});
   fence = new THREE.Mesh(fenceGeometry, fenceMaterial);
   scene.add(fence);
+
+	/**************** CREATE SPHERE ****************/
+	var sphere_geometry = new THREE.SphereGeometry(300);
+	var sphere = new Physijs.SphereMesh(sphere_geometry, material);
+	sphere.position.z = 500;
+	sphere.position.y = 300;
+	sphere.position.x = -500;
+	scene.add(sphere);
 
 			
 	/**************** CREATE AVATAR ****************/
@@ -198,16 +212,19 @@ var initScene = function () {
 	avatar = createAvatar();
 
 	// set up a frame of reference for avatar for model rotation
-  var avatar_frame = new THREE.Object3D();
+  avatar_frame = new Physijs.BoxMesh(
+    new THREE.CubeGeometry(400, 400, 400)
+  );
+	avatar_frame.position.y = 400;
   avatar_frame.add(avatar);
   scene.add(avatar_frame);
 
 	// initialise avatar controls
-	controls = new THREE.FirstPersonControls( avatar_frame );
+	// controls = new THREE.FirstPersonControls( avatar_frame );
 
-	controls.movementSpeed = 5000;
+	// controls.movementSpeed = 5000;
 	//controls.activeLook = false;	// stop the FirstPersonControls from following mouse movements
-	controls.keyRotate = true;
+	// controls.keyRotate = true;
 
 	// create a camera and a scene
 	camera = new THREE.PerspectiveCamera(
@@ -222,14 +239,6 @@ var initScene = function () {
 
 	// add camera to avatar (so that it follows the avatar)
 	avatar.add(camera);
-
-			
-	/**************** CREATE SPHERE ****************/
-	var sphere_geometry = new THREE.SphereGeometry(300);
-	var sphere = new THREE.Mesh(sphere_geometry, material);
-	sphere.position.z = 500;
-	sphere.position.y = 300;
-	scene.add(sphere);
 	
 	/**************** LIGHTING ****************/
 
@@ -297,22 +306,23 @@ var render = function () {
 	// handle the next queued action
   handle(actions.shift());
 	
-	controls.update(clock.getDelta()); // Move camera
+	//controls.update(clock.getDelta()); // Move camera
 
 	// animate avatar's limbs
 	var elapsed = clock.getElapsedTime(),
     	t = elapsed * 1000,
     	amplitude = (MOVESPEED/2 - Math.abs((t % (2*MOVESPEED)) - MOVESPEED))/MOVESPEED;
 
-  if (controls.moveForward || controls.moveBackward ||
-      controls.moveRight || controls.moveLeft) {
-    avatar.getChildByName('left_leg', true).rotation.x  =    amplitude*(Math.PI/8);
-  	avatar.getChildByName('right_leg', true).rotation.x = -1*amplitude*(Math.PI/8);
-  	avatar.getChildByName('left_arm', true).rotation.x  =    amplitude*(Math.PI/8);
-  	avatar.getChildByName('right_arm', true).rotation.x = -1*amplitude*(Math.PI/8);
-  }
+  // if (controls.moveForward || controls.moveBackward ||
+  //     controls.moveRight || controls.moveLeft) {
+  //   avatar.getChildByName('left_leg', true).rotation.x  =    amplitude*(Math.PI/8);
+  // 	avatar.getChildByName('right_leg', true).rotation.x = -1*amplitude*(Math.PI/8);
+  // 	avatar.getChildByName('left_arm', true).rotation.x  =    amplitude*(Math.PI/8);
+  // 	avatar.getChildByName('right_arm', true).rotation.x = -1*amplitude*(Math.PI/8);
+  // }
 
-  detectCollision();
+  //detectCollision();
+  scene.simulate(); // run Physijs physics
 
   renderer.render(scene, camera); // draw the scene
 };
@@ -325,7 +335,7 @@ renderer = initRenderer();
 
 (function animloop() {
 
-	//addEvents();
+	addEvents();
 
   requestAnimFrame(animloop);
 
